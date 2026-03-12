@@ -1,0 +1,27 @@
+services:
+  # The Backend Web Service
+  - type: web
+    name: neurascan-backend
+    env: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12 # Ensure compatible Python version for tensorflow/keras
+
+  # The Frontend Static Site
+  - type: web
+    name: neurascan-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: "./build"
+    envVars:
+      - key: NODE_VERSION
+        value: ~18
+      - key: REACT_APP_API_URL
+        fromService:
+          type: web
+          name: neurascan-backend
+          envVarKey: RENDER_EXTERNAL_URL
