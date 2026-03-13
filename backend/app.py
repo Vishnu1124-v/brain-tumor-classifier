@@ -1,5 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import os
+# Fix for Keras 3 serialization bug on Render
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+import keras
 import tensorflow as tf
 import numpy as np
 import pickle
