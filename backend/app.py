@@ -8,9 +8,11 @@ import base64
 import os
 from PIL import Image
 import io
+import gc
 
 app = Flask(__name__)
-CORS(app)
+# Explicitly allow the frontend URL to prevent any CORS blocks
+CORS(app, resources={r"/*": {"origins": ["https://neurascan-frontend.onrender.com", "http://localhost:3000"]}})
 
 # ── Load model & artifacts ──────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -174,6 +176,11 @@ def predict():
 
     # Tumor info
     info = TUMOR_INFO.get(final_class, {})
+
+    # Clear memory explicitly to prevent Free Tier crashes
+    del img_array
+    del features_raw
+    gc.collect()
 
     return jsonify({
         'prediction':   final_class,
