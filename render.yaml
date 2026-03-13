@@ -10,7 +10,7 @@ services:
     healthCheckPath: "/health"
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11" # Use 3.11 major version for better compatibility
+        value: 3.11.0 # Must be full major.minor.patch version
 
   # The Frontend Static Site
   - type: web
