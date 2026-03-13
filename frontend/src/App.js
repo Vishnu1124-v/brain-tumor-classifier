@@ -5,25 +5,25 @@ import './App.css';
 const API_URL = process.env.REACT_APP_API_URL || 'https://neurascan-backend.onrender.com';
 
 const CLASS_COLORS = {
-  glioma:     { bg: '#fef2f2', border: '#ef4444', text: '#b91c1c', badge: '#ef4444' },
+  glioma: { bg: '#fef2f2', border: '#ef4444', text: '#b91c1c', badge: '#ef4444' },
   meningioma: { bg: '#fff7ed', border: '#f97316', text: '#c2410c', badge: '#f97316' },
-  notumor:    { bg: '#f0fdf4', border: '#22c55e', text: '#15803d', badge: '#22c55e' },
-  pituitary:  { bg: '#eff6ff', border: '#3b82f6', text: '#1d4ed8', badge: '#3b82f6' },
+  notumor: { bg: '#f0fdf4', border: '#22c55e', text: '#15803d', badge: '#22c55e' },
+  pituitary: { bg: '#eff6ff', border: '#3b82f6', text: '#1d4ed8', badge: '#3b82f6' },
 };
 
 const SEVERITY_ICONS = {
-  High:   '🔴',
+  High: '🔴',
   Medium: '🟠',
-  None:   '🟢',
+  None: '🟢',
 };
 
 export default function App() {
-  const [image,      setImage]      = useState(null);
-  const [preview,    setPreview]    = useState(null);
-  const [result,     setResult]     = useState(null);
-  const [loading,    setLoading]    = useState(false);
-  const [error,      setError]      = useState(null);
-  const [dragOver,   setDragOver]   = useState(false);
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
 
   const handleFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -56,7 +56,8 @@ export default function App() {
       });
       setResult(res.data);
     } catch (err) {
-      setError('Prediction failed. Make sure Flask backend is running on port 5000.');
+      console.error('API Error:', err);
+      setError(`Prediction failed. Could not reach backend at ${API_URL}. The backend might be starting up (cold start). Please try again in 30 seconds.`);
     } finally {
       setLoading(false);
     }
