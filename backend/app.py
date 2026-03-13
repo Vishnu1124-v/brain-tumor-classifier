@@ -120,6 +120,16 @@ def generate_gradcam(img_array):
         return None
 
 
+@app.route('/', methods=['GET'])
+def index():
+    return """
+    <h1>🧠 NeuraScan Backend API is Online</h1>
+    <p>This is the API server for the Brain Tumor Classification project.</p>
+    <p>To use the application, please visit the <a href="https://neurascan-frontend.onrender.com">Frontend Website</a>.</p>
+    <p>Status: <b>Active</b></p>
+    """
+
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok', 'message': 'Brain Tumor API is running!'})
