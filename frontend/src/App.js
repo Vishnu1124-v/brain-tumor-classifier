@@ -29,11 +29,16 @@ export default function App() {
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        await axios.get(`${API_URL}/health`);
-        setBackendStatus('online');
+        // Use /ping instead of /health to trigger model loading immediately
+        const res = await axios.get(`${API_URL}/ping`);
+        if (res.data.status === 'ready') {
+          setBackendStatus('online');
+        } else {
+          setBackendStatus('checking');
+          setTimeout(checkStatus, 3000); // Retry if still loading
+        }
       } catch (err) {
         setBackendStatus('offline');
-        // Retry every 5 seconds if offline
         setTimeout(checkStatus, 5000);
       }
     };
@@ -68,7 +73,7 @@ export default function App() {
     try {
       const res = await axios.post(`${API_URL}/predict`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 120000 // 2 minute timeout for heavy AI compute
+        timeout: 300000 // 5 Minute timeout for first analysis (model loading)
       });
       setResult(res.data);
     } catch (err) {

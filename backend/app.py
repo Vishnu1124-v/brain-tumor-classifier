@@ -21,28 +21,59 @@ CORS(app, resources={r"/*": {"origins": ["https://neurascan-frontend.onrender.co
 # ── Load model & artifacts ──────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-print("🔄 Loading model...")
-model = tf.keras.models.load_model(os.path.join(BASE_DIR, 'brain_tumor_97.keras'))
-print("✅ Model loaded!")
+# Global variables for models (loaded lazily)
+model = None
+svm = None
+scaler = None
+CLASS_NAMES = None
+prediction_model = None
+grad_model = None
 
-with open(os.path.join(BASE_DIR, 'svm_model.pkl'),   'rb') as f: svm        = pickle.load(f)
-with open(os.path.join(BASE_DIR, 'scaler.pkl'),      'rb') as f: scaler     = pickle.load(f)
-with open(os.path.join(BASE_DIR, 'class_names.pkl'), 'rb') as f: CLASS_NAMES= pickle.load(f)
+def load_models_lazy():
+    global model, svm, scaler, CLASS_NAMES, prediction_model, grad_model
+    if model is not None:
+        return
+        
+    print("🔄 Loading models (Lazy Init)...")
+    try:
+        model = tf.keras.models.load_model(os.path.join(BASE_DIR, 'brain_tumor_97.keras'))
+        
+        with open(os.path.join(BASE_DIR, 'svm_model.pkl'), 'rb') as f: 
+            svm = pickle.load(f)
+        with open(os.path.join(BASE_DIR, 'scaler.pkl'), 'rb') as f: 
+            scaler = pickle.load(f)
+        with open(os.path.join(BASE_DIR, 'class_names.pkl'), 'rb') as f: 
+            CLASS_NAMES = pickle.load(f)
+            
+        prediction_model = tf.keras.Model(
+            inputs=model.input,
+            outputs=[model.layers[-4].output, model.output]
+        )
+        
+        grad_model = tf.keras.Model(
+            inputs=model.inputs,
+            outputs=[model.get_layer('top_conv').output, model.output]
+        )
+        print("✅ All artifacts loaded successfully!")
+    except Exception as e:
+        print(f"❌ Error loading models: {str(e)}")
+        raise e
 
-print("✅ All artifacts loaded!")
-print("📋 Classes:", CLASS_NAMES)
+@app.route('/health')
+def health_check():
+    # Return 200 immediately so Render knows the server is UP
+    # Even if models aren't loaded yet, the server is "alive"
+    status = "ready" if model is not None else "loading_models"
+    return jsonify({"status": "online", "model_status": status}), 200
 
-# Combined model for efficiency (extracts features and predicts in 1 pass)
-prediction_model = tf.keras.Model(
-    inputs=model.input,
-    outputs=[model.layers[-4].output, model.output]
-)
-
-# Pre-initialize Grad-CAM model to avoid recreation overhead
-grad_model = tf.keras.Model(
-    inputs=model.inputs,
-    outputs=[model.get_layer('top_conv').output, model.output]
-)
+@app.route('/ping')
+def ping():
+    # Trigger model loading in the background
+    try:
+        load_models_lazy()
+        return jsonify({"status": "ready"}), 200
+    except:
+        return jsonify({"status": "error"}), 500
 
 IMG_SIZE = 224
 
@@ -143,6 +174,9 @@ def health():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    # Ensure models are loaded before processing
+    load_models_lazy()
+
     if 'image' not in request.files:
         return jsonify({'error': 'No image provided'}), 400
 
