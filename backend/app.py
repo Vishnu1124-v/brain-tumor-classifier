@@ -175,7 +175,7 @@ def predict():
     try:
         gradcam_img = generate_gradcam(img_array)
     except Exception as e:
-        print(f"⚠️ Skipping Grad-CAM due to memory: {e}")
+        print(f"Skipping Grad-CAM due to memory: {e}")
         gradcam_img = None
 
     # Tumor info
