@@ -7,9 +7,10 @@ services:
     rootDir: backend
     buildCommand: "pip install -r requirements.txt"
     startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120"
+    healthCheckPath: "/health"
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0 # Match .python-version file
+        value: "3.11" # Use 3.11 major version for better compatibility
 
   # The Frontend Static Site
   - type: web
@@ -20,7 +21,7 @@ services:
     staticPublishPath: "./build"
     envVars:
       - key: NODE_VERSION
-        value: ~18
+        value: "18"
       - key: REACT_APP_API_URL
         fromService:
           type: web
