@@ -6,7 +6,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT"
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120"
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.12 # Ensure compatible Python version for tensorflow/keras
