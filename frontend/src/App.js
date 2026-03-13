@@ -24,10 +24,20 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+  const [backendStatus, setBackendStatus] = useState('checking'); // 'checking', 'online', 'offline'
 
   useEffect(() => {
-    // Wake up backend as soon as the user opens the site
-    axios.get(`${API_URL}/health`).catch(() => { });
+    const checkStatus = async () => {
+      try {
+        await axios.get(`${API_URL}/health`);
+        setBackendStatus('online');
+      } catch (err) {
+        setBackendStatus('offline');
+        // Retry every 5 seconds if offline
+        setTimeout(checkStatus, 5000);
+      }
+    };
+    checkStatus();
   }, []);
 
   const handleFile = useCallback((file) => {
@@ -98,6 +108,12 @@ export default function App() {
       </header>
 
       <main className="main">
+        {/* Connection Status Banner */}
+        <div className={`status-banner ${backendStatus}`}>
+          {backendStatus === 'online' && <p>✅ AI Server is Online & Ready</p>}
+          {backendStatus === 'offline' && <p>⏳ AI Server is waking up (Cold Start)... This usually takes 1 minute.</p>}
+          {backendStatus === 'checking' && <p>🔍 Checking connection to AI Server...</p>}
+        </div>
         {/* Upload Section */}
         <section className="card upload-card">
           <h2 className="section-title">Upload MRI Scan</h2>
