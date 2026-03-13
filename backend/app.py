@@ -171,8 +171,12 @@ def predict():
     all_probs = {CLASS_NAMES[i]: round(float(dl_preds[i]) * 100, 2)
                  for i in range(len(CLASS_NAMES))}
 
-    # Grad-CAM
-    gradcam_img = generate_gradcam(img_array)
+    # Grad-CAM (Heatmap) - Wrap in safety because this is memory heavy
+    try:
+        gradcam_img = generate_gradcam(img_array)
+    except Exception as e:
+        print(f"⚠️ Skipping Grad-CAM due to memory: {e}")
+        gradcam_img = None
 
     # Tumor info
     info = TUMOR_INFO.get(final_class, {})

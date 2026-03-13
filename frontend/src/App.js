@@ -67,12 +67,14 @@ export default function App() {
 
     try {
       const res = await axios.post(`${API_URL}/predict`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 120000 // 2 minute timeout for heavy AI compute
       });
       setResult(res.data);
     } catch (err) {
       console.error('API Error:', err);
-      setError(`Prediction failed. Could not reach backend at ${API_URL}. The backend might be starting up (cold start). Please try again in 30 seconds.`);
+      const msg = err.response?.data?.error || err.message;
+      setError(`Analysis Failed: ${msg}. If this is a 'Network Error', the server likely ran out of memory. Try again in 1 minute.`);
     } finally {
       setLoading(false);
     }
