@@ -26,10 +26,16 @@ with open(os.path.join(BASE_DIR, 'class_names.pkl'), 'rb') as f: CLASS_NAMES= pi
 print("✅ All artifacts loaded!")
 print("📋 Classes:", CLASS_NAMES)
 
-# Feature extractor (second to last dense layer)
-feature_extractor = tf.keras.Model(
+# Combined model for efficiency (extracts features and predicts in 1 pass)
+prediction_model = tf.keras.Model(
     inputs=model.input,
-    outputs=model.layers[-4].output
+    outputs=[model.layers[-4].output, model.output]
+)
+
+# Pre-initialize Grad-CAM model to avoid recreation overhead
+grad_model = tf.keras.Model(
+    inputs=model.inputs,
+    outputs=[model.get_layer('top_conv').output, model.output]
 )
 
 IMG_SIZE = 224
@@ -77,13 +83,9 @@ def preprocess_image(image_bytes):
     img = tf.keras.applications.efficientnet.preprocess_input(img)
     return np.expand_dims(img, axis=0)
 
-def generate_gradcam(img_array, model, last_conv='top_conv'):
+def generate_gradcam(img_array):
     """Generate Grad-CAM heatmap."""
     try:
-        grad_model = tf.keras.Model(
-            inputs=model.inputs,
-            outputs=[model.get_layer(last_conv).output, model.output]
-        )
         with tf.GradientTape() as tape:
             conv_out, preds = grad_model(img_array)
             pred_idx    = int(tf.argmax(preds[0]).numpy())
@@ -134,15 +136,16 @@ def predict():
     # Preprocess
     img_array = preprocess_image(image_bytes)
 
-    # ── DL Prediction ──────────────────────────────────────────────
-    dl_preds   = model.predict(img_array, verbose=0)[0]
+    # ── Single-pass DL Prediction & Feature Extraction ─────────────
+    features_raw, dl_preds = prediction_model.predict(img_array, verbose=0)
+    dl_preds = dl_preds[0]
+    
     dl_idx     = int(np.argmax(dl_preds))
     dl_class   = CLASS_NAMES[dl_idx]
     dl_conf    = float(dl_preds[dl_idx])
-
+    
     # ── Hybrid SVM Prediction ──────────────────────────────────────
-    features   = feature_extractor.predict(img_array, verbose=0)
-    features   = scaler.transform(features)
+    features   = scaler.transform(features_raw)
     svm_idx    = int(svm.predict(features)[0])
     svm_probs  = svm.predict_proba(features)[0]
     svm_class  = CLASS_NAMES[svm_idx]
@@ -157,7 +160,7 @@ def predict():
                  for i in range(len(CLASS_NAMES))}
 
     # Grad-CAM
-    gradcam_img = generate_gradcam(img_array, model)
+    gradcam_img = generate_gradcam(img_array)
 
     # Tumor info
     info = TUMOR_INFO.get(final_class, {})

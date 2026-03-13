@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -24,6 +24,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
+
+  useEffect(() => {
+    // Wake up backend as soon as the user opens the site
+    axios.get(`${API_URL}/health`).catch(() => { });
+  }, []);
 
   const handleFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
