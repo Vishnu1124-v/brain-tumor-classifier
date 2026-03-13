@@ -50,11 +50,13 @@ def load_models_lazy():
             outputs=[model.layers[-4].output, model.output]
         )
         
-        grad_model = tf.keras.Model(
-            inputs=model.inputs,
-            outputs=[model.get_layer('top_conv').output, model.output]
-        )
+        # Pre-initialize Grad-CAM model (DISABLED in Slim Mode to save RAM)
+        # grad_model = tf.keras.Model(
+        #     inputs=model.inputs,
+        #     outputs=[model.get_layer('top_conv').output, model.output]
+        # )
         print("✅ All artifacts loaded successfully!")
+        gc.collect() # Force cleanup immediately after loading
     except Exception as e:
         print(f"❌ Error loading models: {str(e)}")
         raise e
@@ -174,6 +176,7 @@ def health():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    gc.collect() # Pre-cleanup
     # Ensure models are loaded before processing
     load_models_lazy()
 
@@ -209,12 +212,13 @@ def predict():
     all_probs = {CLASS_NAMES[i]: round(float(dl_preds[i]) * 100, 2)
                  for i in range(len(CLASS_NAMES))}
 
-    # Grad-CAM (Heatmap) - Wrap in safety because this is memory heavy
-    try:
-        gradcam_img = generate_gradcam(img_array)
-    except Exception as e:
-        print(f"Skipping Grad-CAM due to memory: {e}")
-        gradcam_img = None
+    # Grad-CAM (Heatmap) - DISABLED in Slim Mode for stability
+    gradcam_img = None
+    # try:
+    #     gradcam_img = generate_gradcam(img_array)
+    # except Exception as e:
+    #     print(f"Skipping Grad-CAM due to memory: {e}")
+    #     gradcam_img = None
 
     # Tumor info
     info = TUMOR_INFO.get(final_class, {})
